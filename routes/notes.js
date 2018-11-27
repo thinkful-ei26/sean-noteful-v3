@@ -3,48 +3,58 @@
 const express = require('express');
 
 const router = express.Router();
+const mongoose = require('mongoose');
+const Note = require('../models/note');
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
+  const searchTerm = req.query.searchTerm;
+  let filter = {};
+  if (searchTerm) filter.title = {$regex: searchTerm, $options: 'i'};
 
-  console.log('Get All Notes');
-  res.json([
-    { id: 1, title: 'Temp 1' },
-    { id: 2, title: 'Temp 2' },
-    { id: 3, title: 'Temp 3' }
-  ]);
-
+  Note.find(filter).sort({updatedAt: 'desc'})
+    .then(Notes => res.json(Notes))
+    .catch(err => next(err));
 });
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
-
-  console.log('Get a Note');
-  res.json({ id: 1, title: 'Temp 1' });
-
+  Note.findById(req.params.id)
+    .then(note => res.json(note))
+    .catch(err => next(err));
 });
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
+  const requiredFields = ['title']; // requiredFields is an array to make it easier to change if I ever want to add more
+  requiredFields.forEach(field => {
+    if (!(field in req.body)) return res.status(400).send(`Missing \`${field}\` in request body`);
+  });
 
-  console.log('Create a Note');
-  res.location('path/to/new/document').status(201).json({ id: 2, title: 'Temp 2' });
-
+  Note.create({title: req.body.title, content: req.body.content})
+    .then(note => res.status(201).json(note))
+    .catch(err => next(err));
 });
 
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
+  // if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
+  //   return res.status(400).json({message: `Request path id (${req.params.id}) and request body id (${req.body.id}) must match`});
+  // }
+  const toUpdate = {};
+  const updateableFields = ['title', 'content'];
+  updateableFields.forEach(field => {if (field in req.body) toUpdate[field] = req.body[field];});
 
-  console.log('Update a Note');
-  res.json({ id: 1, title: 'Updated Temp 1' });
-
+  Note.findByIdAndUpdate(req.params.id, {$set: toUpdate})
+    .then(() => res.status(204).end())
+    .catch(err => next(err));
 });
 
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
-
-  console.log('Delete a Note');
-  res.status(204).end();
+  Note.findByIdAndRemove(req.params.id)
+    .then(() => res.status(204).end())
+    .catch(err => next(err));
 });
 
 module.exports = router;
