@@ -2,3 +2,10 @@ language: node_js
 node_js: node
 services:
 - mongodb
+deploy:
+  provider: heroku
+  api_key:
+    secure: cPhTP9//1mTnSUx2dsva81oWl0D3QRwxWzu3gqT/WKfX7fYpHJG8ndjocez19sT4XbgpZ1bPyyiRNq+9ISmABKUHz4F3a8yGW+akEvaGpO6Xzyzx/XX1FfiWoX5EnuvbLOjJK+U29u3Jt6MMOOr7PUHQBPBSU1+AshjWtxd6zr4RICeV+bzoDIm3m9gxsXytYMvE2mvEpdx2WrZSGxEhHhWflhc90bN6LFzAD9yvQ5184y4xCWRzOSTq1qy972tAfU5oF1vnlpFU38Kz7RoGXdoFKjNNBZ0CKRR0po3qgyUnw0hrBIBbtdByBX8rHNqINu4qNC4RIyptvSMqL3qvIUH/QIG61EP66X0Ilddxm4ZO8Fu921y+kb7Hh31I6FeleqDUoGRSuR0gGuBFkvDAbkIW49oePoKr84IlHAdNDh8rVFgr21b+u9kkzBY1g6GY3Q2EfM7Sez5JtTc11FAL9gxiYaGkPjpTTlkqbNeHxK6eqE15lkH+xgy/TJtCMxK1H48NlIB2/qCNDEGAYXYxk9IlfNk8rdS4pVRVOH7GJKAq9wcOGkV+o2mjkO8vs0ytj7Tx1HAYznYXFaH527dI+3vmSPhEWRD2opVkfgZxjr4g4dB/kG+9e8QdONE6vCab0lR5wZUPHndcmrvEr4l1dC92ldfCtDas9qe3Rv+Z1Uk=
+  app: sean-noteful-v3
+  on:
+    repo: thinkful-ei26/sean-noteful-v3
