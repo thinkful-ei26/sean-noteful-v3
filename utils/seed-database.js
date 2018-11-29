@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const {MONGODB_URI} = require('../config');
 const Note = require('../models/note');
-const {notes} = require('../db/seed/notes');
+const {notes} = require('../db/seed/data');
 
 mongoose.connect(MONGODB_URI, {useNewUrlParser: true})
   .then(() => mongoose.connection.db.dropDatabase())
