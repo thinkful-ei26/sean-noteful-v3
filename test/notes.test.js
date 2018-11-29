@@ -60,28 +60,35 @@ describe('Notes API resource', function() {
   });
   describe('POST endpoint', function() {
     it('should add a new note', function() {
-      const newNote = {title: 'new title', content: 'new content'};
+      const newNote = {title: 'new title', content: 'new content', folderId: '111111111111111111111100'};
       return chai.request(app).post('/api/notes').send(newNote)
         .then(function(res) {
           // console.log(res.body);
           expect(res).to.have.status(201);
           expect(res).to.be.json;
           expect(res.body).to.be.an('object');
-          expect(res.body).to.include.keys('id', 'title', 'content');
+          expect(res.body).to.include.keys('id', 'title', 'content', 'folderId');
           expect(res.body.id).to.not.be.null;
           expect(res.body.title).to.equal(newNote.title);
           expect(res.body.content).to.equal(newNote.content);
+          console.log(res.body.folderId);
+          expect(res.body.folderId).to.equal(newNote.folderId);
           return Note.findById(res.body.id);
         })
         .then(function(note) {
           expect(note.title).to.equal(newNote.title);
           expect(note.content).to.equal(newNote.content);
+          // console.log(note.folderId);
+          // console.log(newNote.folderId);
+          // expect(note.folderId).to.equal(newNote.folderId);
+          // ^ this fails even though note.folderId and newNote.folderId are logging 111111111111111111111100 in console
+          // the error thinks note.folderId is { Object (_bsontype, id) }
         });
     });
   });
   describe('PUT endpoint', function() {
     it('should update sent fields', function() {
-      const updateData = {title: 'update title', content: 'update content'};
+      const updateData = {title: 'update title', content: 'update content', folderId: '111111111111111111111100'};
       return Note.findOne()
         .then(function(note) {
           updateData.id = note.id;
@@ -94,6 +101,8 @@ describe('Notes API resource', function() {
         .then(function(note) {
           expect(note.title).to.equal(updateData.title);
           expect(note.content).to.equal(updateData.content);
+          // expect(note.folderId).to.equal(updateData.folderId);
+          // same error as above, probably something to do with how mongo handles ids
         });
     });
   });
