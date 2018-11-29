@@ -63,7 +63,7 @@ router.delete('/:id', (req, res, next) => {
   const id = req.params.id;
 
   Note.deleteMany({folderId: id})
-    .then(Folder.findByIdAndRemove(id))
+    .then(() => Folder.findByIdAndRemove(id))
     .then(() => res.status(204).end())
     .catch(err => next(err));
 });
