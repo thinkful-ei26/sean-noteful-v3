@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Folder = require('../models/folder');
 const Note = require('../models/note');
 
@@ -15,6 +16,7 @@ router.get('/', (req, res, next) => {
 });
 
 router.get('/:id', (req, res, next) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid folderId');
   Folder.findById(req.params.id)
     .then(folder => {
       if (folder) res.json(folder);
@@ -44,6 +46,7 @@ router.post('/', (req, res, next) => {
 });
 
 router.put('/:id', (req, res, next) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid folderId');
   const toUpdate = {};
   const updatableFields = ['name'];
   updatableFields.forEach(field => {if (field in req.body) toUpdate[field] = req.body[field];});
