@@ -3,7 +3,6 @@
 const express = require('express');
 
 const router = express.Router();
-const mongoose = require('mongoose');
 const Note = require('../models/note');
 
 /* ========== GET/READ ALL ITEMS ========== */
@@ -14,14 +13,20 @@ router.get('/', (req, res, next) => {
   // if (searchTerm) filter.title = {$regex: searchTerm, $options: 'i'};
 
   Note.find({$or: [{title: re}, {content: re}]}).sort({updatedAt: 'desc'})
-    .then(Notes => res.json(Notes))
+    .then(Notes => {
+      if (Notes) res.json(Notes);
+      else next();
+    })
     .catch(err => next(err));
 });
 
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
   Note.findById(req.params.id)
-    .then(note => res.json(note))
+    .then(note => {
+      if (note) res.json(note);
+      else next();
+    })
     .catch(err => next(err));
 });
 
@@ -33,7 +38,10 @@ router.post('/', (req, res, next) => {
   });
 
   Note.create({title: req.body.title, content: req.body.content})
-    .then(note => res.status(201).json(note))
+    .then(note => {
+      if (note) res.status(201).json(note);
+      else next();
+    })
     .catch(err => next(err));
 });
 
