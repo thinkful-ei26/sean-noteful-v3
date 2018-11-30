@@ -71,7 +71,7 @@ describe('Notes API resource', function() {
           expect(res.body.id).to.not.be.null;
           expect(res.body.title).to.equal(newNote.title);
           expect(res.body.content).to.equal(newNote.content);
-          console.log(res.body.folderId);
+          // console.log(res.body.folderId);
           expect(res.body.folderId).to.equal(newNote.folderId);
           return Note.findById(res.body.id);
         })
@@ -95,7 +95,14 @@ describe('Notes API resource', function() {
           return chai.request(app).put(`/api/notes/${updateData.id}`).send(updateData);
         })
         .then(function(res) {
-          expect(res).to.have.status(204);
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.an('object');
+          expect(res.body).to.include.keys('id', 'title', 'content', 'folderId');
+          expect(res.body.id).to.not.be.null;
+          expect(res.body.title).to.equal(updateData.title);
+          expect(res.body.content).to.equal(updateData.content);
+          expect(res.body.folderId).to.equal(updateData.folderId);
           return Note.findById(updateData.id);
         })
         .then(function(note) {
