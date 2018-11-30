@@ -6,7 +6,9 @@ const mongoose = require('mongoose');
 const app = require('../server');
 const {TEST_MONGODB_URI} = require('../config');
 const Note = require('../models/note');
-const {notes} = require('../db/seed/data');
+const Folder = require('../models/folder');
+const Tag = require('../models/tag');
+const {notes, folders, tags} = require('../db/seed/data');
 
 const expect = chai.expect;
 chai.use(chaiHttp);
@@ -17,7 +19,13 @@ describe('Notes API resource', function() {
       .then(() => mongoose.connection.db.dropDatabase());
   });
   beforeEach(function() {
-    return Note.insertMany(notes);
+    return Promise.all([
+      Note.insertMany(notes),
+      Folder.insertMany(folders),
+      Tag.insertMany(tags),
+      Folder.createIndexes(),
+      Tag.createIndexes()
+    ]);
   });
   afterEach(function() {
     return mongoose.connection.db.dropDatabase();
@@ -55,12 +63,17 @@ describe('Notes API resource', function() {
           expect(resNote.id).to.equal(res.body.id);
           expect(resNote.title).to.equal(res.body.title);
           expect(resNote.content).to.equal(res.body.content);
+          expect(res.body.tags).to.be.an('array');
+          res.body.tags.forEach(tag => {
+            expect(tag).to.include.keys('id', 'name');
+            expect(resNote.tags).to.include(tag.id);
+          });
         });
     });
   });
   describe('POST endpoint', function() {
     it('should add a new note', function() {
-      const newNote = {title: 'new title', content: 'new content', folderId: '111111111111111111111100'};
+      const newNote = {title: 'new title', content: 'new content', folderId: '111111111111111111111100', tags: ['222222222222222222222200', '222222222222222222222201']};
       return chai.request(app).post('/api/notes').send(newNote)
         .then(function(res) {
           // console.log(res.body);
@@ -73,11 +86,15 @@ describe('Notes API resource', function() {
           expect(res.body.content).to.equal(newNote.content);
           // console.log(res.body.folderId);
           expect(res.body.folderId).to.equal(newNote.folderId);
+          res.body.tags.forEach(tag => expect(newNote.tags).to.include(tag));
+          newNote.tags.forEach(tag => expect(res.body.tags).to.include(tag));
           return Note.findById(res.body.id);
         })
         .then(function(note) {
           expect(note.title).to.equal(newNote.title);
           expect(note.content).to.equal(newNote.content);
+          // note.tags.forEach(tag => expect(newNote.tags).to.include(tag));
+          newNote.tags.forEach(tag => expect(note.tags).to.include(tag));
           // console.log(note.folderId);
           // console.log(newNote.folderId);
           // expect(note.folderId).to.equal(newNote.folderId);
@@ -88,7 +105,7 @@ describe('Notes API resource', function() {
   });
   describe('PUT endpoint', function() {
     it('should update sent fields', function() {
-      const updateData = {title: 'update title', content: 'update content', folderId: '111111111111111111111100'};
+      const updateData = {title: 'update title', content: 'update content', folderId: '111111111111111111111100', tags: ['222222222222222222222200', '222222222222222222222201']};
       return Note.findOne()
         .then(function(note) {
           updateData.id = note.id;
@@ -103,11 +120,14 @@ describe('Notes API resource', function() {
           expect(res.body.title).to.equal(updateData.title);
           expect(res.body.content).to.equal(updateData.content);
           expect(res.body.folderId).to.equal(updateData.folderId);
+          res.body.tags.forEach(tag => expect(updateData.tags).to.include(tag));
+          updateData.tags.forEach(tag => expect(res.body.tags).to.include(tag));
           return Note.findById(updateData.id);
         })
         .then(function(note) {
           expect(note.title).to.equal(updateData.title);
           expect(note.content).to.equal(updateData.content);
+          updateData.tags.forEach(tag => expect(note.tags).to.include(tag));
           // expect(note.folderId).to.equal(updateData.folderId);
           // same error as above, probably something to do with how mongo handles ids
         });
