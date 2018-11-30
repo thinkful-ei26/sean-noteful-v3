@@ -37,13 +37,17 @@ router.post('/', (req, res, next) => {
   requiredFields.forEach(field => {
     if (!(field in req.body)) return res.status(400).send(`Missing \`${field}\` in request body`);
   });
-  if (req.body.folderId && !(mongoose.Types.ObjectId.isValid(req.body.folderId))) {
-    return res.status(400).send('Invalid folderId');
-  } else if (req.body.folderId && !(Folder.findById(req.body.folderId))) {
-    return res.status(400).send(`No folder exists with id \`${req.body.folderId}\``);
+  const {title, content, folderId} = req.body;
+  const newNote = {title, content};
+  if (folderId) {
+    if (!(mongoose.Types.ObjectId.isValid(req.body.folderId))) {
+      return res.status(400).send('Invalid folderId');
+    } else if (!(Folder.findById(req.body.folderId))) {
+      return res.status(400).send(`No folder exists with id \`${req.body.folderId}\``);
+    } else newNote.folderId = folderId;
   }
 
-  Note.create({title: req.body.title, content: req.body.content, folderId: req.body.folderId})
+  Note.create(newNote)
     .then(note => {
       if (note) res.status(201).json(note);
       else next();
@@ -53,20 +57,22 @@ router.post('/', (req, res, next) => {
 
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
-  // if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
-  //   return res.status(400).json({message: `Request path id (${req.params.id}) and request body id (${req.body.id}) must match`});
-  // }
-  if (req.body.folderId && !(mongoose.Types.ObjectId.isValid(req.body.folderId))) {
-    return res.status(400).send('Invalid folderId');
-  } else if (req.body.folderId && !(Folder.findById(req.body.folderId))) {
-    return res.status(400).send(`No folder exists with id \`${req.body.folderId}\``);
-  }
   const toUpdate = {};
-  const updateableFields = ['title', 'content', 'folderId'];
+  const updateableFields = ['title', 'content'];
   updateableFields.forEach(field => {if (field in req.body) toUpdate[field] = req.body[field];});
+  if (req.body.folderId === '') {
+    toUpdate.$unset = {folderId: ''};
+  } else if (req.body.folderId) {
+    if (!mongoose.Types.ObjectId.isValid(req.body.folderId)) return res.status(400).send('Invalid folderId');
+    else if (!Folder.findById(req.body.folderId)) return res.status(400.).send(`No folder exists with id \`${req.body.folderId}\``);
+    else toUpdate.folderId = req.body.folderId;
+  }
 
-  Note.findByIdAndUpdate(req.params.id, {$set: toUpdate})
-    .then(() => res.status(204).end())
+  Note.findByIdAndUpdate(req.params.id, toUpdate, {new: true})
+    .then(note => {
+      if (note) res.json(note);
+      else next();
+    })
     .catch(err => next(err));
 });
 
