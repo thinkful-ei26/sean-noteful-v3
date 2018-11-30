@@ -3,24 +3,24 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const Folder = require('../models/folder');
+const Tag = require('../models/tag');
 const Note = require('../models/note');
 
 router.get('/', (req, res, next) => {
-  Folder.find().sort({name: 'asc'})
-    .then(folders => {
-      if (folders) res.json(folders);
+  Tag.find().sort({name: 'asc'})
+    .then(tags => {
+      if (tags) res.json(tags);
       else next();
     })
     .catch(err => next(err));
 });
 
 router.get('/:id', (req, res, next) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid folderId');
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid ID');
 
-  Folder.findById(req.params.id)
-    .then(folder => {
-      if (folder) res.json(folder);
+  Tag.findById(req.params.id)
+    .then(tag => {
+      if (tag) res.json(tag);
       else next();
     })
     .catch(err => next(err));
@@ -32,14 +32,14 @@ router.post('/', (req, res, next) => {
     if (!(field in req.body)) return res.status(400).send(`Missing \`${field}\` in request body`);
   });
 
-  Folder.create({name: req.body.name})
-    .then(folder => {
-      if (folder) res.location(`${req.originalUrl}/${folder.id}`).status(201).json(folder);
+  Tag.create({name: req.body.name})
+    .then(tag => {
+      if (tag) res.location(`${req.originalUrl}/${tag.id}`).status(201).json(tag);
       else next();
     })
     .catch(err => {
       if (err.code === 11000) {
-        err = new Error('The folder name already exists');
+        err = new Error('The tag name already exists');
         err.status = 400;
       }
       next(err);
@@ -47,16 +47,23 @@ router.post('/', (req, res, next) => {
 });
 
 router.put('/:id', (req, res, next) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid folderId');
+  const requiredFields = ['name'];
+  requiredFields.forEach(field => {
+    if (!(field in req.body)) return res.status(400).send(`Missing \`${field}\` in request body`);
+  });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).send('Invalid ID');
   const toUpdate = {};
   const updatableFields = ['name'];
   updatableFields.forEach(field => {if (field in req.body) toUpdate[field] = req.body[field];});
 
-  Folder.findByIdAndUpdate(req.params.id, {$set: toUpdate})
-    .then(() => res.status(204).end())
+  Tag.findByIdAndUpdate(req.params.id, toUpdate, {new: true})
+    .then(tag => {
+      if (tag) res.json(tag);
+      else next();
+    })
     .catch(err => {
       if (err.code === 11000) {
-        err = new Error('The folder name already exists');
+        err = new Error('The tag name already exists');
         err.status = 400;
       }
       next(err);
@@ -64,10 +71,8 @@ router.put('/:id', (req, res, next) => {
 });
 
 router.delete('/:id', (req, res, next) => {
-  const id = req.params.id;
-
-  Note.updateMany({folderId: id}, {$unset: {folderId: ''}})
-    .then(() => Folder.findByIdAndRemove(id))
+  Note.updateMany({}, {$pull: {tags: req.params.id}})
+    .then(() => Tag.findByIdAndRemove(req.params.id))
     .then(() => res.status(204).end())
     .catch(err => next(err));
 });

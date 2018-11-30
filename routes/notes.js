@@ -8,14 +8,16 @@ const Folder = require('../models/folder');
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
-  const {searchTerm, folderId} = req.query;
+  const {searchTerm, folderId, tagId} = req.query;
   const re = new RegExp(searchTerm, 'i');
   let filter = {$or: [{title: re}, {content: re}]};
   if (folderId) filter.folderId = folderId;
+  if (tagId) filter.tags = tagId;
 
   Note.find(filter).sort({updatedAt: 'desc'})
-    .then(Notes => {
-      if (Notes) res.json(Notes);
+    .populate('tags')
+    .then(notes => {
+      if (notes) res.json(notes);
       else next();
     })
     .catch(err => next(err));
@@ -24,6 +26,7 @@ router.get('/', (req, res, next) => {
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
   Note.findById(req.params.id)
+    .populate('tags')
     .then(note => {
       if (note) res.json(note);
       else next();
@@ -37,19 +40,20 @@ router.post('/', (req, res, next) => {
   requiredFields.forEach(field => {
     if (!(field in req.body)) return res.status(400).send(`Missing \`${field}\` in request body`);
   });
-  const {title, content, folderId} = req.body;
-  const newNote = {title, content};
+  const {title, content, folderId, tags} = req.body;
+  const newNote = {title, content, tags};
   if (folderId) {
-    if (!(mongoose.Types.ObjectId.isValid(req.body.folderId))) {
+    if (!mongoose.Types.ObjectId.isValid(req.body.folderId)) {
       return res.status(400).send('Invalid folderId');
     } else if (!(Folder.findById(req.body.folderId))) {
       return res.status(400).send(`No folder exists with id \`${req.body.folderId}\``);
     } else newNote.folderId = folderId;
   }
+  if (tags) tags.forEach(tag => {if (!mongoose.Types.ObjectId.isValid(tag)) return res.status(400).send('Invalid tagId');});
 
   Note.create(newNote)
     .then(note => {
-      if (note) res.status(201).json(note);
+      if (note) res.location(`${req.originalUrl}/${note.id}`).status(201).json(note);
       else next();
     })
     .catch(err => next(err));
@@ -66,6 +70,10 @@ router.put('/:id', (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(req.body.folderId)) return res.status(400).send('Invalid folderId');
     else if (!Folder.findById(req.body.folderId)) return res.status(400.).send(`No folder exists with id \`${req.body.folderId}\``);
     else toUpdate.folderId = req.body.folderId;
+  }
+  if (req.body.tags) {
+    req.body.tags.forEach(tag => {if (!mongoose.Types.ObjectId.isValid(tag)) return res.status(400).send('Invalid tagId');});
+    toUpdate.tags = req.body.tags;
   }
 
   Note.findByIdAndUpdate(req.params.id, toUpdate, {new: true})
